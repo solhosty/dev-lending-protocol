@@ -46,7 +46,18 @@ forge test
 
 ## Deployment (Keystore-Based, Recommended)
 
-### Step 1: Create an encrypted keystore
+### Step 1: Set up environment variables
+
+```bash
+cp .env.example .env
+# Edit .env and fill in your real values
+source .env
+```
+
+Copy the example file, set your real `SEPOLIA_RPC_URL` and `ETHERSCAN_API_KEY`,
+then load them into your shell with `source .env`.
+
+### Step 2: Create an encrypted keystore
 
 ```bash
 cast wallet import deployer --interactive
@@ -55,12 +66,12 @@ cast wallet import deployer --interactive
 Foundry prompts for a private key and password, then stores the key encrypted in
 Foundry's default keystore directory.
 
-### Step 2: Fund the wallet
+### Step 3: Fund the wallet
 
 Fund the keystore address with Sepolia ETH from a faucet such as Alchemy, Infura,
 or Google Cloud.
 
-### Step 3: Deploy
+### Step 4: Deploy
 
 ```bash
 forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --account deployer
