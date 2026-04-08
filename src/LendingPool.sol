@@ -238,9 +238,11 @@ contract LendingPool is Ownable, ReentrancyGuard {
 
         uint256 debtPrice = priceOracle.getAssetPrice(debtAsset);
         uint256 collateralPrice = priceOracle.getAssetPrice(collateralAsset);
+        uint256 debtDecimals = uint256(_assetDecimals(debtAsset));
+        uint256 collateralDecimals = uint256(_assetDecimals(collateralAsset));
 
-        uint256 collateralToSeize = (debtAmount * debtPrice * collateralMarket.liquidationBonusBps)
-            / (BPS * collateralPrice);
+        uint256 collateralToSeize = (debtAmount * debtPrice * collateralMarket.liquidationBonusBps
+            * (10 ** collateralDecimals)) / (BPS * collateralPrice * (10 ** debtDecimals));
 
         userDeposits[user][collateralAsset] -= collateralToSeize;
         collateralMarket.totalDeposits -= collateralToSeize;
