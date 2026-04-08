@@ -10,6 +10,20 @@ User -> LendingPool -> AToken / DebtToken
 User -> LendingPool -> PriceOracle -> Chainlink-style price feed
 User -> LendingPool -> InterestRate
 
+## Getting Started
+
+Prerequisites: If you do not have Foundry installed yet, run:
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash && foundryup
+```
+
+1. Clone this repository to your machine so you have the project files locally.
+2. Run `git submodule update --init --recursive` to pull required submodules.
+3. Run `forge install` to install any project dependencies used by Foundry.
+4. Run `forge build` to compile the contracts and confirm the project builds.
+5. Run `forge test` to execute the test suite and verify everything passes.
+
 ## Contracts
 
 - `src/LendingPool.sol`: Core market lifecycle for `addMarket`, `deposit`, `withdraw`,

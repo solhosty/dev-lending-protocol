@@ -8,6 +8,8 @@ import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
 contract PriceOracle is Ownable {
     mapping(address => address) public priceFeeds;
 
+    constructor() Ownable(msg.sender) {}
+
     function setPriceFeed(address asset, address feed) external onlyOwner {
         require(asset != address(0), "INVALID_ASSET");
         require(feed != address(0), "INVALID_FEED");

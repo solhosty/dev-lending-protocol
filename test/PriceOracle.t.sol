@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "lib/openzeppelin-contracts/lib/forge-std/src/Test.sol";
+import {Ownable} from "@openzeppelin/access/Ownable.sol";
 
 import {PriceOracle} from "src/PriceOracle.sol";
 import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
@@ -62,7 +63,7 @@ contract PriceOracleTest is Test {
 
     function testOnlyOwnerCanSetPriceFeed() external {
         vm.prank(address(0xB0B));
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(0xB0B)));
         oracle.setPriceFeed(ASSET, address(feed));
     }
 

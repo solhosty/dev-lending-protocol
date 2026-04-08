@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/security/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "@openzeppelin/utils/ReentrancyGuard.sol";
 
 import {AToken} from "src/AToken.sol";
 import {DebtToken} from "src/DebtToken.sol";
@@ -48,7 +48,7 @@ contract LendingPool is Ownable, ReentrancyGuard {
         uint256 collateralSeized
     );
 
-    constructor(address oracle_, address interestRate_) {
+    constructor(address oracle_, address interestRate_) Ownable(msg.sender) {
         require(oracle_ != address(0), "INVALID_ORACLE");
         require(interestRate_ != address(0), "INVALID_RATE_MODEL");
         priceOracle = PriceOracle(oracle_);
