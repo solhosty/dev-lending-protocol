@@ -92,13 +92,18 @@ contract LendingPool is Ownable, ReentrancyGuard {
         require(amount > 0, "INVALID_AMOUNT");
         Market storage market = _getMarket(asset);
 
+        uint256 balanceBefore = IERC20(asset).balanceOf(address(this));
         require(IERC20(asset).transferFrom(msg.sender, address(this), amount), "TRANSFER_FAILED");
-        market.totalDeposits += amount;
-        userDeposits[msg.sender][asset] += amount;
+        uint256 balanceAfter = IERC20(asset).balanceOf(address(this));
+        uint256 received = balanceAfter - balanceBefore;
+        require(received > 0, "INVALID_RECEIVED_AMOUNT");
 
-        market.aToken.mint(msg.sender, amount);
+        market.totalDeposits += received;
+        userDeposits[msg.sender][asset] += received;
 
-        emit Deposit(msg.sender, asset, amount);
+        market.aToken.mint(msg.sender, received);
+
+        emit Deposit(msg.sender, asset, received);
     }
 
     function withdraw(address asset, uint256 amount) external {
@@ -145,13 +150,19 @@ contract LendingPool is Ownable, ReentrancyGuard {
         require(debt > 0, "NO_DEBT");
 
         uint256 repayAmount = amount > debt ? debt : amount;
+        uint256 balanceBefore = IERC20(asset).balanceOf(address(this));
         require(IERC20(asset).transferFrom(msg.sender, address(this), repayAmount), "TRANSFER_FAILED");
+        uint256 balanceAfter = IERC20(asset).balanceOf(address(this));
+        uint256 received = balanceAfter - balanceBefore;
+        require(received > 0, "INVALID_RECEIVED_AMOUNT");
 
-        userBorrows[msg.sender][asset] = debt - repayAmount;
-        market.totalBorrows -= repayAmount;
-        market.debtToken.burn(msg.sender, repayAmount);
+        uint256 appliedRepay = received > debt ? debt : received;
 
-        emit Repay(msg.sender, asset, repayAmount);
+        userBorrows[msg.sender][asset] = debt - appliedRepay;
+        market.totalBorrows -= appliedRepay;
+        market.debtToken.burn(msg.sender, appliedRepay);
+
+        emit Repay(msg.sender, asset, appliedRepay);
     }
 
     function liquidate(address user, address debtAsset, address collateralAsset, uint256 debtToCover)
