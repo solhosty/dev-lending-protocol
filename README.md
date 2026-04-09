@@ -37,6 +37,58 @@ curl -L https://foundry.paradigm.xyz | bash && foundryup
   transfers disabled.
 - `src/interfaces/AggregatorV3Interface.sol`: Local Chainlink-compatible feed interface.
 
+## LiquidationEngine
+
+`LiquidationEngine` is a permissionless batch liquidation orchestrator for multi-asset
+liquidation flows. It does not replace pool accounting; each entry delegates to
+`LendingPool.liquidate()` after local checks and caps are applied.
+
+### What It Does
+
+- Accepts arrays for `borrowers`, `debtAssets`, `collateralAssets`, and `debtAmounts`.
+- Executes multiple liquidation entries in one transaction through
+  `executeLiquidations(...)`.
+- Pulls debt tokens from the caller, approves `LendingPool`, delegates liquidation, and
+  forwards seized collateral back to the caller.
+
+### How It Works
+
+1. Validates equal array lengths and per-entry non-zero addresses/amounts.
+2. Reads borrower debt and collateral balances from `LendingPool`.
+3. Prices debt via `PriceOracle`, enforces a minimum debt threshold, and computes a
+   capped `debtToCover` so bonus-adjusted seizure cannot exceed remaining collateral.
+4. Approves debt tokens and calls `LendingPool.liquidate()` for each entry.
+
+### Key Safety Features
+
+- Bonus cap: trims `debtToCover` when the liquidation bonus would otherwise over-seize
+  borrower collateral.
+- Dust defense: rejects liquidations where borrower debt value is below the default
+  `$100` USD threshold (`minDebtThresholdUsd`, owner-adjustable).
+- Reentrancy protection: `executeLiquidations(...)` is guarded by `ReentrancyGuard`.
+
+### Usage
+
+```solidity
+address[] memory borrowers = new address[](2);
+borrowers[0] = userA;
+borrowers[1] = userB;
+
+address[] memory debtAssets = new address[](2);
+debtAssets[0] = usdc;
+debtAssets[1] = dai;
+
+address[] memory collateralAssets = new address[](2);
+collateralAssets[0] = weth;
+collateralAssets[1] = weth;
+
+uint256[] memory debtAmounts = new uint256[](2);
+debtAmounts[0] = 1_000e6;
+debtAmounts[1] = 500e18;
+
+liquidationEngine.executeLiquidations(borrowers, debtAssets, collateralAssets, debtAmounts);
+```
+
 ## Build And Test
 
 ```bash
