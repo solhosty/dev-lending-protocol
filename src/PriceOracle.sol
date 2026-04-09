@@ -6,6 +6,8 @@ import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
 
 contract PriceOracle is Ownable {
+    uint256 public constant MAX_PRICE_AGE = 1 days;
+
     mapping(address => address) public priceFeeds;
 
     constructor() Ownable(msg.sender) {}
@@ -21,8 +23,12 @@ contract PriceOracle is Ownable {
         require(feed != address(0), "FEED_NOT_SET");
 
         AggregatorV3Interface aggregator = AggregatorV3Interface(feed);
-        (, int256 answer,,,) = aggregator.latestRoundData();
+        (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) =
+            aggregator.latestRoundData();
         require(answer > 0, "INVALID_PRICE");
+        require(answeredInRound >= roundId, "INCOMPLETE_ROUND");
+        require(startedAt > 0 && updatedAt > 0, "STALE_PRICE");
+        require(block.timestamp - updatedAt <= MAX_PRICE_AGE, "STALE_PRICE");
 
         uint8 decimals = aggregator.decimals();
         // forge-lint: disable-next-line(unsafe-typecast)
