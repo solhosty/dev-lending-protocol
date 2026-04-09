@@ -30,10 +30,18 @@ contract MockERC20 is ERC20 {
 contract MockPriceFeed is AggregatorV3Interface {
     int256 internal price;
     uint8 internal immutable feedDecimals;
+    uint80 internal latestRoundId;
+    uint80 internal latestAnsweredInRound;
+    uint256 internal latestStartedAt;
+    uint256 internal latestUpdatedAt;
 
     constructor(uint8 decimals_, int256 initialPrice) {
         feedDecimals = decimals_;
         price = initialPrice;
+        latestRoundId = 1;
+        latestAnsweredInRound = 1;
+        latestStartedAt = block.timestamp;
+        latestUpdatedAt = block.timestamp;
     }
 
     function setPrice(int256 newPrice) external {
@@ -57,11 +65,11 @@ contract MockPriceFeed is AggregatorV3Interface {
         view
         returns (uint80, int256, uint256, uint256, uint80)
     {
-        return (roundId, price, 0, 0, roundId);
+        return (roundId, price, latestStartedAt, latestUpdatedAt, latestAnsweredInRound);
     }
 
     function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80) {
-        return (1, price, 0, 0, 1);
+        return (latestRoundId, price, latestStartedAt, latestUpdatedAt, latestAnsweredInRound);
     }
 }
 
@@ -162,6 +170,29 @@ contract LendingPoolTest is Test {
         (, address aToken,,,,,,) = pool.getMarket(address(weth));
         assertEq(AToken(aToken).balanceOf(address(alice)), 10e18);
         assertEq(pool.userDeposits(address(alice), address(weth)), 10e18);
+    }
+
+    function testATokenTransferReverts() external {
+        weth.mint(address(this), 10e18);
+        weth.approve(address(pool), 10e18);
+        pool.deposit(address(weth), 10e18);
+
+        (, address aToken,,,,,,) = pool.getMarket(address(weth));
+        vm.expectRevert("NON_TRANSFERABLE");
+        AToken(aToken).transfer(address(bob), 1e18);
+    }
+
+    function testATokenTransferFromReverts() external {
+        weth.mint(address(this), 10e18);
+        weth.approve(address(pool), 10e18);
+        pool.deposit(address(weth), 10e18);
+
+        (, address aToken,,,,,,) = pool.getMarket(address(weth));
+        AToken(aToken).approve(address(bob), 1e18);
+
+        vm.expectRevert("NON_TRANSFERABLE");
+        vm.prank(address(bob));
+        AToken(aToken).transferFrom(address(this), address(carol), 1e18);
     }
 
     function testWithdrawBurnsATokens() external {

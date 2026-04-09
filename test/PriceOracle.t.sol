@@ -10,14 +10,31 @@ import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
 contract MockPriceFeed is AggregatorV3Interface {
     int256 internal price;
     uint8 internal immutable feedDecimals;
+    uint80 internal latestRoundId;
+    uint80 internal latestAnsweredInRound;
+    uint256 internal latestStartedAt;
+    uint256 internal latestUpdatedAt;
 
     constructor(uint8 decimals_, int256 initialPrice) {
         feedDecimals = decimals_;
         price = initialPrice;
+        latestRoundId = 1;
+        latestAnsweredInRound = 1;
+        latestStartedAt = block.timestamp;
+        latestUpdatedAt = block.timestamp;
     }
 
     function setPrice(int256 newPrice) external {
         price = newPrice;
+    }
+
+    function setRoundData(uint80 newRoundId, uint256 newStartedAt, uint256 newUpdatedAt, uint80 newAnsweredInRound)
+        external
+    {
+        latestRoundId = newRoundId;
+        latestStartedAt = newStartedAt;
+        latestUpdatedAt = newUpdatedAt;
+        latestAnsweredInRound = newAnsweredInRound;
     }
 
     function decimals() external view returns (uint8) {
@@ -37,11 +54,11 @@ contract MockPriceFeed is AggregatorV3Interface {
         view
         returns (uint80, int256, uint256, uint256, uint80)
     {
-        return (roundId, price, 0, 0, roundId);
+        return (roundId, price, latestStartedAt, latestUpdatedAt, latestAnsweredInRound);
     }
 
     function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80) {
-        return (1, price, 0, 0, 1);
+        return (latestRoundId, price, latestStartedAt, latestUpdatedAt, latestAnsweredInRound);
     }
 }
 
@@ -72,6 +89,22 @@ contract PriceOracleTest is Test {
         feed.setPrice(0);
 
         vm.expectRevert("INVALID_PRICE");
+        oracle.getAssetPrice(ASSET);
+    }
+
+    function testIncompleteRoundReverts() external {
+        oracle.setPriceFeed(ASSET, address(feed));
+        feed.setRoundData(2, block.timestamp, block.timestamp, 1);
+
+        vm.expectRevert("INCOMPLETE_ROUND");
+        oracle.getAssetPrice(ASSET);
+    }
+
+    function testStalePriceReverts() external {
+        oracle.setPriceFeed(ASSET, address(feed));
+        vm.warp(block.timestamp + oracle.MAX_PRICE_AGE() + 1);
+
+        vm.expectRevert("STALE_PRICE");
         oracle.getAssetPrice(ASSET);
     }
 }
