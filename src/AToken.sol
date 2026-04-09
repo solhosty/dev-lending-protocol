@@ -22,4 +22,12 @@ contract AToken is ERC20 {
     function burn(address from, uint256 amount) external onlyLendingPool {
         _burn(from, amount);
     }
+
+    function transfer(address, uint256) public pure override returns (bool) {
+        revert("NON_TRANSFERABLE");
+    }
+
+    function transferFrom(address, address, uint256) public pure override returns (bool) {
+        revert("NON_TRANSFERABLE");
+    }
 }

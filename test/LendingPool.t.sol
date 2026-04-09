@@ -172,6 +172,29 @@ contract LendingPoolTest is Test {
         assertEq(pool.userDeposits(address(alice), address(weth)), 10e18);
     }
 
+    function testATokenTransferReverts() external {
+        weth.mint(address(this), 10e18);
+        weth.approve(address(pool), 10e18);
+        pool.deposit(address(weth), 10e18);
+
+        (, address aToken,,,,,,) = pool.getMarket(address(weth));
+        vm.expectRevert("NON_TRANSFERABLE");
+        AToken(aToken).transfer(address(bob), 1e18);
+    }
+
+    function testATokenTransferFromReverts() external {
+        weth.mint(address(this), 10e18);
+        weth.approve(address(pool), 10e18);
+        pool.deposit(address(weth), 10e18);
+
+        (, address aToken,,,,,,) = pool.getMarket(address(weth));
+        AToken(aToken).approve(address(bob), 1e18);
+
+        vm.expectRevert("NON_TRANSFERABLE");
+        vm.prank(address(bob));
+        AToken(aToken).transferFrom(address(this), address(carol), 1e18);
+    }
+
     function testWithdrawBurnsATokens() external {
         _aliceApproveAndDepositWeth(10e18);
         alice.withdraw(address(pool), address(weth), 4e18);
